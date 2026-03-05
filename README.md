@@ -9,14 +9,14 @@ A containerised machine learning inference service built with:
 -   Docker Compose
 -   pytest
 
-This project demonstrates a production-style ML inference workflow
+This project demonstrates a production‑style ML inference workflow
 including:
 
 -   deterministic model artifact generation
 -   API-based prediction
 -   strict request validation
 -   structured JSON logging
--   environment configuration via .env
+-   environment configuration via `.env`
 -   containerised deployment
 -   automated endpoint tests
 
@@ -24,139 +24,165 @@ including:
 
 # Architecture
 
-Client ↓ FastAPI REST API ↓ Pydantic Request Validation ↓ Inference
-Logic ↓ Model Artifact (model.json) ↓ Prediction Response
+Client → FastAPI REST API → Pydantic Request Validation → Inference
+Logic → Model Artifact (`model.json`) → Prediction Response
 
 ------------------------------------------------------------------------
 
 # Project Structure
 
-ml_inference_api
-
-app/ main.py schemas.py config.py logging_conf.py model_loader.py
-
-model/ train.py artifact/model.json
-
-tests/ test_health.py test_predict.py
-
-docs/evidence/
-
-Dockerfile docker-compose.yml requirements.txt .env.example README.md
+    ml_inference_api/
+    │
+    ├─ app/
+    │   ├─ main.py
+    │   ├─ schemas.py
+    │   ├─ config.py
+    │   ├─ logging_conf.py
+    │   └─ model_loader.py
+    │
+    ├─ model/
+    │   ├─ train.py
+    │   └─ artifact/
+    │
+    ├─ tests/
+    │   ├─ test_health.py
+    │   └─ test_predict.py
+    │
+    ├─ docs/
+    │   └─ evidence/
+    │
+    ├─ .env.example
+    ├─ Dockerfile
+    ├─ docker-compose.yml
+    ├─ requirements.txt
+    └─ README.md
 
 ------------------------------------------------------------------------
 
 # API Endpoints
 
-## Health Check
+## Health
 
-GET /health
+    GET /health
 
 Response
 
-{ "status": "ok" }
+``` json
+{
+  "status": "ok"
+}
+```
 
 ------------------------------------------------------------------------
 
 ## Version
 
-GET /version
+    GET /version
 
 Response
 
-{ "app": "ML Inference API", "version": "1.0.0" }
+``` json
+{
+  "app": "ML Inference API",
+  "version": "1.0.0"
+}
+```
 
 ------------------------------------------------------------------------
 
-## Prediction
+## Predict
 
-POST /predict
+    POST /predict
 
-Request
+Example request
 
-{ "features": \[0.1,0.2,0.3,0.4\] }
+``` json
+{
+  "features": [0.1, 0.2, 0.3, 0.4]
+}
+```
 
-Rules
+Example response
 
-• exactly 4 numeric features • values must be floats
-
-Response
-
-{ "prediction": 1, "probability": 0.5411566681433093, "model_version":
-"1.0.0" }
+``` json
+{
+  "prediction": 1,
+  "probability": 0.54,
+  "model_version": "1.0.0"
+}
+```
 
 ------------------------------------------------------------------------
 
 # Local Setup
 
-Create virtual environment
+### Create virtual environment
 
-py -3.13 -m venv .venv
+    py -3.13 -m venv .venv
 
 Activate
 
-..venv`\Scripts`{=tex}`\Activate`{=tex}.ps1
-
-Confirm
-
-python --version
+    .\.venv\Scripts\Activate.ps1
 
 ------------------------------------------------------------------------
 
-# Install Dependencies
+### Install dependencies
 
-python -m pip install --upgrade pip python -m pip install -r
-requirements.txt
-
-Verify
-
-python -m pip show fastapi
+    python -m pip install --upgrade pip
+    python -m pip install -r requirements.txt
 
 ------------------------------------------------------------------------
 
-# Generate Model Artifact
+### Train model artifact
 
-python model/train.py
+    python model/train.py
 
-This creates
+Creates
 
-model/artifact/model.json
+    model/artifact/model.json
 
 ------------------------------------------------------------------------
 
-# Run API Locally
+### Run API
 
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 Open
 
-http://localhost:8000/docs
-
-Health
-
-http://localhost:8000/health
+    http://localhost:8000/health
+    http://localhost:8000/docs
 
 ------------------------------------------------------------------------
 
 # Environment Variables
 
-Copy template
+Create `.env` from `.env.example`
 
-cp .env.example .env
+  Variable      Description
+  ------------- ------------------------
+  APP_NAME      API display name
+  APP_VERSION   API version
+  LOG_LEVEL     Logging level
+  MODEL_PATH    Path to model artifact
 
-Variables
+Example
 
-APP_NAME=ML Inference API APP_VERSION=1.0.0 LOG_LEVEL=INFO
-MODEL_PATH=model/artifact/model.json
+    APP_NAME=ML Inference API
+    APP_VERSION=1.0.0
+    LOG_LEVEL=INFO
+    MODEL_PATH=model/artifact/model.json
 
 ------------------------------------------------------------------------
 
 # Running Tests
 
-python -m pytest -q
+    python -m pytest -q
 
-Expected
+Tests validate
 
-2 passed
+-   health endpoint
+-   valid prediction
+-   invalid prediction input
 
 ------------------------------------------------------------------------
 
@@ -164,19 +190,11 @@ Expected
 
 Build image
 
-docker build -t ml-inference-api:1.0.0 .
+    docker build -t ml-inference-api:1.0.0 .
 
 Run container
 
-docker run --rm -p 8000:8000 --env-file .env ml-inference-api:1.0.0
-
-Open
-
-http://localhost:8000/health http://localhost:8000/docs
-
-Stop
-
-CTRL + C
+    docker run --rm -p 8000:8000 --env-file .env ml-inference-api:1.0.0
 
 ------------------------------------------------------------------------
 
@@ -184,73 +202,93 @@ CTRL + C
 
 Start
 
-docker compose up
+    docker compose up
 
 Stop
 
-docker compose down
+    docker compose down
+
+------------------------------------------------------------------------
+
+# Sending Requests from PowerShell (Important)
+
+PowerShell sometimes corrupts JSON when using curl.\
+The safest method is sending JSON from a file.
+
+### Step 1 --- Create payload
+
+    Set-Content -Path payload.json -Value '{ "features": [0.1, 0.2, 0.3, 0.4] }' -Encoding utf8
+
+### Step 2 --- Send request
+
+    curl.exe -v -H "Content-Type: application/json" --data-binary "@payload.json" "http://localhost:8000/predict"
+
+Expected response
+
+``` json
+{
+  "prediction": 1,
+  "probability": 0.54,
+  "model_version": "1.0.0"
+}
+```
+
+------------------------------------------------------------------------
+
+# Clean‑up Rule
+
+Do **not commit payload.json**.
+
+Add to `.gitignore`
+
+    payload.json
 
 ------------------------------------------------------------------------
 
 # Troubleshooting
 
-Port already in use
+### Port already in use
 
-uvicorn app.main:app --port 8001
+    netstat -ano | findstr :8000
 
-------------------------------------------------------------------------
+### Model file missing
 
-Missing .env
+    python model/train.py
 
-Create from .env.example
+### Missing `.env`
 
-------------------------------------------------------------------------
+Copy
 
-Missing model artifact
+    .env.example → .env
 
-python model/train.py
+### PowerShell curl alias
 
-------------------------------------------------------------------------
+PowerShell aliases curl to another command.
 
-PowerShell curl alias
+Always use
 
-Use
+    curl.exe
 
-curl.exe
+instead of
 
-Example
-
-curl.exe -X POST "http://localhost:8000/predict" -H "Content-Type:
-application/json" --data-raw "{\"features\":\[0.1,0.2,0.3,0.4\]}"
+    curl
 
 ------------------------------------------------------------------------
 
-# Evidence
+# Project Goal
 
-All screenshots stored under
+This repository demonstrates a **containerised production‑style ML
+inference service** including:
 
-docs/evidence/
+-   API validation
+-   environment configuration
+-   automated tests
+-   Docker containerisation
+-   Docker Compose orchestration
 
-------------------------------------------------------------------------
+Foundation for
 
-# Final Verification
-
-Local
-
-python -m pip install -r requirements.txt python model/train.py uvicorn
-app.main:app --reload python -m pytest -q
-
-Container
-
-docker build -t ml-inference-api:1.0.0 . docker run --rm -p 8000:8000
---env-file .env ml-inference-api:1.0.0
-
-Compose
-
-docker compose up
-
-Health endpoint must return
-
-{"status":"ok"}
-
-Prediction endpoint must return valid response.
+-   CI/CD pipelines
+-   container registry publishing
+-   Kubernetes deployment
+-   monitoring with Prometheus
